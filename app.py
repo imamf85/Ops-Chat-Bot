@@ -88,7 +88,6 @@ def handle_hiops_command(ack, body, client, say):
     user_id = body["user_id"]
     channel_id = "C0719R3NQ91"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
     user_requests[channel_id] = user_id
     try:
         init_result = client.chat_postMessage(
@@ -147,7 +146,7 @@ def handle_hiops_command(ack, body, client, say):
                     "fields": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive.ops.{ts}",
+                            "text": f"*Ticket Number:*\nlive-ops.{ts}",
                         },
                         {
                             "type": "mrkdwn",
