@@ -34,9 +34,6 @@ greetings_response = {
     "malam": "Selamat Malam"
 }
 
-user_requests = {}
-ticket_timestamp = {}
-
 greeting_pattern = re.compile(
     r".*(morning|hello|hi|assalamu'alaikum|evening|hey|assalamualaikum|afternoon|shalom|hai|hej|pagi|siang|malam).*",
     re.IGNORECASE,
@@ -88,7 +85,9 @@ def handle_hiops_command(ack, body, client, say):
     user_id = body["user_id"]
     channel_id = "C0719R3NQ91"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    user_requests[channel_id] = user_id
+    categories = ['Data', 'Ajar', 'Guru Piket', 'Recording Video']
+    categories.sort()
+
     try:
         init_result = client.chat_postMessage(
             channel=channel_id, text="Initializing ticket..."
@@ -120,87 +119,110 @@ def handle_hiops_command(ack, body, client, say):
         
 
         response_for_user = client.chat_postMessage(channel=user_id, blocks=ticket)
-        ticket_key_for_user = f"{user_id}-{response_for_user["ts"]}-{user_input}-{timestamp}"
+        ticket_key_for_user = f"{user_id},{response_for_user["ts"]},{user_input},{timestamp}"
         members_result = client.conversations_members(channel=channel_id)
         members = members_result["members"] if members_result["ok"] else []
         user_options = [
-            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member}-{user_id}-{response_for_user["ts"]}"}
+            {"text": {"type": "plain_text", "text": f"<@{member}>"}, "value": f"{member},{user_id},{response_for_user["ts"]}"}
             for member in members
         ]
+        category_options = [
+            {"text": {"type": "plain_text", "text": category}, "value": f"{category},{ticket_key_for_user}"}
+            for category in categories
+        ]
+
         if init_result["ok"]:
             ts = init_result["ts"]
             blocks = [
-                {
-                    "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"We just received a ticket from <@{user_id}> at `{timestamp}`",
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Hi @channel :wave:"},
                     },
-                },
-                {
-                    "type": "section",
-                    "fields": [
-                        {
+                    {
+                        "type": "section",
+                        "text": {
                             "type": "mrkdwn",
-                            "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                            "text": f"We just received a ticket from <@{user_id}> at `{timestamp}`",
                         },
-                        {
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Ticket Number:*\nlive-ops.{ts}",
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Problem:*\n{user_input}",
+                            },
+                        ],
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "section",
+                        "text": {
                             "type": "mrkdwn",
-                            "text": f"*Problem:*\n{user_input}",
+                            "text": "Please pick a person:",
                         },
-                    ],
-                },
-                {"type": "divider"},
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Please pick someone to handle this issue",
-                    },
-                    "accessory": {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select a person...",
-                            "emoji": True,
-                        },
-                        "options": user_options,
-                        "action_id": "user_select_action",
-                    },
-                },
-                {"type": "divider"},
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
+                        "accessory": {
+                            "type": "static_select",
+                            "placeholder": {
                                 "type": "plain_text",
+                                "text": "Select a person...",
                                 "emoji": True,
-                                "text": "Resolve",
                             },
-                            "style": "primary",
-                            "value": ticket_key_for_user,
-                            "action_id": "resolve_button",
+                            "options": user_options,
+                            "action_id": "user_select_action",
                         },
-                        {
-                            "type": "button",
-                            "text": {
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Please select the category of the issue:",
+                        },
+                        "accessory": {
+                            "type": "static_select",
+                            "placeholder": {
                                 "type": "plain_text",
+                                "text": "Select category...",
                                 "emoji": True,
-                                "text": "Reject",
                             },
-                            "style": "danger",
-                            "value": ticket_key_for_user,
-                            "action_id": "reject_button",
+                            "options": category_options,
+                            "action_id": "category_select_action",
                         },
-                    ],
-                },
-            ]
+                    },
+                    {"type": "divider"},
+                    {
+                        "type": "actions",
+                        "elements": [
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Resolve",
+                                },
+                                "style": "primary",
+                                "value": ticket_key_for_user,
+                                "action_id": "resolve_button",
+                            },
+                            {
+                                "type": "button",
+                                "text": {
+                                    "type": "plain_text",
+                                    "emoji": True,
+                                    "text": "Reject",
+                                },
+                                "style": "danger",
+                                "value": ticket_key_for_user,
+                                "action_id": "reject_button",
+                            },
+                        ],
+                    },
+                ]
+
         
         result = client.chat_update(channel=channel_id, ts=ts, blocks=blocks)
         sheet_manager.init_ticket_row(
@@ -219,7 +241,7 @@ def handle_hiops_command(ack, body, client, say):
 @app.action("user_select_action")
 def handle_user_selection(ack, body, client):
     ack()
-    selected_user_data = body["actions"][0]["selected_option"]["value"].split('-')
+    selected_user_data = body["actions"][0]["selected_option"]["value"].split(',')
     selected_user = selected_user_data[0]
     user_who_requested = selected_user_data[1]
     response_ts = selected_user_data[2]
@@ -247,6 +269,18 @@ def handle_user_selection(ack, body, client):
     if not response["ok"]:
         logging.error(f"Failed to post message: {response['error']}")
 
+@app.action("category_select_action")
+def handle_category_selection(ack, body, client):
+    ack()
+    selected_category = body['actions'][0]['selected_option']['value'].split(',')
+    print("ini kateogry", selected_category)
+    selected_category_name = selected_category[0]
+    thread_ts = body["container"]["message_ts"]
+    sheet_manager.update_ticket(
+        f"live-ops.{thread_ts}",
+        {"category_issue": selected_category_name},
+    )
+
 
 @app.action("resolve_button")
 def handle_resolve_button(ack, body, client):
@@ -254,14 +288,13 @@ def handle_resolve_button(ack, body, client):
     user_id = body["user"]["id"]
     channel_id = body["channel"]["id"]
     thread_ts = body["container"]["message_ts"]
-    elements = body["message"]["blocks"][6]["elements"]
-    resolve_button_value = elements[0]["value"].split("-")
+    elements = body["message"]["blocks"][7]["elements"]
+    resolve_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = resolve_button_value[0]
     user_message_ts = resolve_button_value[1]
     user_input = resolve_button_value[2]
     ticket_reported_at = resolve_button_value[3]
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print("ini body di resolve", body)
     response = client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
@@ -326,8 +359,8 @@ def handle_reject_button(ack, body, client):
     trigger_id = body["trigger_id"]
     message_ts = body["container"]["message_ts"]
     channel_id = body["channel"]["id"]
-    elements = body["message"]["blocks"][6]["elements"]
-    reject_button_value = elements[0]["value"].split("-")
+    elements = body["message"]["blocks"][7]["elements"]
+    reject_button_value = elements[0]["value"].split(",")
     user_who_requested_ticket_id = reject_button_value[0]
     user_message_ts = reject_button_value[1]
     user_input = reject_button_value[2]
