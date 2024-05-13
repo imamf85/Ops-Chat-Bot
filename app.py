@@ -15,8 +15,6 @@ sheet_manager = SheetManager(
     "creds_file.json", "1dPXiGBN2dDyyQ9TnO6Hi8cQtmbkFBU4O7sI5ztbXT90"
 )
 
-logging.basicConfig(level=logging.DEBUG)
-
 greetings_response = {
     "morning": "Good Morning",
     "hello": "Hello",
@@ -34,11 +32,24 @@ greetings_response = {
     "malam": "Selamat Malam"
 }
 
+thank_you_response = {
+    "makasih": "Iyaa, sama sama :pray:",
+    "thank you": "yap, my pleasure :pray:",
+    "thx": "yuhu, you're welcome",
+    "maaci": "hihi iaa, maaciw juga :wink:",
+    "suwun": "enggeh, sami sami :pray:",
+    "nuhun": "muhun, sami sami :pray:"
+}
+
 greeting_pattern = re.compile(
     r".*(morning|hello|hi|assalamu'alaikum|evening|hey|assalamualaikum|afternoon|shalom|hai|hej|pagi|siang|malam).*",
     re.IGNORECASE,
 )
 
+thank_you_pattern = re.compile(
+    r".*(makasih|thank|thx|maaci|suwun|nuhun).*",
+    re.IGNORECASE
+)
 
 @app.event("message")
 def handle_message_events(body, say, client):
@@ -53,11 +64,12 @@ def handle_message_events(body, say, client):
         email = user_info["user"].get("name", "unknown") + "@colearn.id"
         full_name = user_info["user"]["profile"].get("real_name", "unknown")
         phone_number = user_info["user"]["profile"].get("phone", "unknown")
-        match = greeting_pattern.search(text)
+        match_greeting = greeting_pattern.search(text)
+        match_thank_you = thank_you_pattern.search(text)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if match:
-            greeting = match.group(1)
+        if match_greeting:
+            greeting = match_greeting.group(1)
             if greeting in greetings_response:
                 response = greetings_response[greeting]
                 say(
@@ -66,6 +78,11 @@ def handle_message_events(body, say, client):
                 say(
                     f"Please type your issue with the following pattern: `/hiops [isi pertanyaan/masalahmu]`"
                 )
+        elif match_thank_you:
+            thank_you = match_thank_you.group(1)
+            if thank_you in thank_you_response:
+                response = thank_you_response[thank_you]
+                say(response)
         else:
             say(f"Hi <@{event['user']}>, Ops are ready to help :confused_dog:")
             say(
